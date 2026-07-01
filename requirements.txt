@@ -1,0 +1,7 @@
+gradio
+google
+dotenv
+pydantic
+transformers
+torch
+datetime
