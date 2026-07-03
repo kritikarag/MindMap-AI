@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import datetime
+from memory import create_embedding
 
 DB_NAME = "mindmap.db"
 
@@ -40,6 +41,8 @@ def save_entry(
         emotion_analysis,
         reflection_analysis,
 ):
+    embedding = create_embedding(journal_text)
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -52,7 +55,8 @@ def save_entry(
         observations,
         possible_patterns,
         reflection,
-        created_at
+        created_at,
+        embedding
         )
 
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -71,7 +75,9 @@ def save_entry(
 
             reflection_analysis.reflection,
 
-            datetime.now().isoformat()
+            datetime.now().isoformat(),
+
+            embedding
         )
     )
 
