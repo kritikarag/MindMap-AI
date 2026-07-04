@@ -1,3 +1,4 @@
 ../PythonProject/MindMap-Ai/.venv/
 .env
 __pycache__/
+mindmap.db
