@@ -1,6 +1,7 @@
 from hf_analyzer import predict
 from gemini_service import analyze
 from database import save_entry
+from memory import find_similar_entries
 
 def analyze_entry(journal_text):
     """
@@ -16,7 +17,9 @@ def analyze_entry(journal_text):
 
     emotion_analysis = predict(journal_text)
 
-    reflection_analysis = analyze(journal_text, emotion_analysis)
+    similar_entries = find_similar_entries(emotion_analysis)
+
+    reflection_analysis = analyze(journal_text, emotion_analysis, similar_entries)
 
     save_entry(journal_text, emotion_analysis, reflection_analysis)
 

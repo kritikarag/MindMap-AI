@@ -13,7 +13,19 @@ client = genai.Client(
     api_key=os.getenv("GENAI_CLIENT_KEY"),
 )
 
-def analyze(journal_text, emotion_analysis: EmotionAnalysis ):
+def analyze(journal_text, emotion_analysis: EmotionAnalysis, similar_entries=None ):
+    history_block = ""
+    if similar_entries:
+        relevant = [text for score, text in similar_entries if score > 0.5]
+        if relevant:
+            entries_str = "\n".join(f"- {t}" for t in relevant)
+            history_block = f"""
+    Similar past entries from this user's journal:
+    {entries_str}
+
+    If genuinely relevant, you may reference these as a pattern (e.g. "this resembles entries from earlier"). Do not quote them directly, and don't force a connection if these entries aren't actually related.
+    """
+
     prompt = f"""
     You are a journaling reflection assistant.
 
@@ -24,6 +36,8 @@ def analyze(journal_text, emotion_analysis: EmotionAnalysis ):
     - Do not make assumptions about the person.
     - Use words like "may", "might", "could".
     - Return only JSON.
+    
+    {history_block}
 
     Journal entry:
 
