@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from datetime import datetime
 from memory import create_embedding
@@ -29,7 +30,9 @@ def create_tables():
 
         reflection TEXT,
 
-        created_at TEXT
+        created_at TEXT,
+        
+        embedding TEXT
     )
     """)
 
@@ -41,7 +44,7 @@ def save_entry(
         emotion_analysis,
         reflection_analysis,
 ):
-    embedding = create_embedding(journal_text)
+    embedding = json.dumps(create_embedding(journal_text))
 
     conn = get_connection()
     cursor = conn.cursor()
@@ -59,7 +62,7 @@ def save_entry(
         embedding
         )
 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
 
         (

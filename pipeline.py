@@ -17,7 +17,7 @@ def analyze_entry(journal_text):
 
     emotion_analysis = predict(journal_text)
 
-    similar_entries = find_similar_entries(emotion_analysis)
+    similar_entries = find_similar_entries(journal_text)
 
     reflection_analysis = analyze(journal_text, emotion_analysis, similar_entries)
 
