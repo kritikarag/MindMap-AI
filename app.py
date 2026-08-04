@@ -1,4 +1,9 @@
 import gradio as gr
+from safety_layer import (
+    build_get_help_now_panel,
+    build_quick_exit_button,
+    build_mode_toggle,
+)
 
 from pipeline import analyze_entry
 
@@ -46,5 +51,22 @@ demo = gr.Interface(
     title="MindMap AI",
     description="Reflect on your journal entries with AI"
 )
+
+with gr.Blocks() as demo:
+
+    mode_toggle = build_mode_toggle()
+    journal_input = gr.Textbox(label="Journal entry", lines=8)
+    submit_btn = gr.Button("Submit")
+    output = gr.Markdown()
+
+    submit_btn.click(
+        fn=analyze_entry,
+        inputs=[journal_input, mode_toggle],
+        outputs=output,
+    )
+
+    with gr.Row():
+        build_get_help_now_panel()
+        build_quick_exit_button()
 
 demo.launch()
