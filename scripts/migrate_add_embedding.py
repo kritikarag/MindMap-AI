@@ -1,7 +1,7 @@
-import sqlite3
+from mindmap.storage.connection import get_connection
 
 
-conn = sqlite3.connect("mindmap.db")
+conn = get_connection()
 
 cursor = conn.cursor()
 

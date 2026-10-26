@@ -1,7 +1,8 @@
 gradio
-google
-dotenv
+google-genai
+python-dotenv
 pydantic
 transformers
 torch
-datetime
+sentence-transformers
+numpy

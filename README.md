@@ -107,7 +107,7 @@ Current system design:
           |                             |
           v                             v
 
-   hf_analyzer.py              gemini_service.py
+  analysis/emotion.py       analysis/reflection.py
 
    Hugging Face                 Gemini API
 
@@ -134,29 +134,34 @@ Current system design:
 
 ```
 MindMap-AI/
-
-├── app.py
-│   └── Gradio user interface
-│
-├── pipeline.py
-│   └── Connects all AI components
-│
-├── hf_analyzer.py
-│   └── Emotion classification using Hugging Face
-│
-├── gemini_service.py
-│   └── Reflection generation using Gemini
-│
-├── models.py
-│   └── Pydantic schemas for structured outputs
-│
-├── test_pipeline.py
-│   └── Backend pipeline testing
-│
+├── app.py                       # Entry point: python app.py
+├── mindmap/                     # Application package
+│   ├── config.py                # DB path, model names (one place to change them)
+│   ├── models.py                # Pydantic schemas for structured outputs
+│   ├── pipeline.py              # Connects all components
+│   ├── analysis/
+│   │   ├── emotion.py           # Emotion classification (Hugging Face)
+│   │   └── reflection.py        # Reflection generation (Gemini)
+│   ├── memory/
+│   │   └── embeddings.py        # Embeddings + similar-entry retrieval
+│   ├── storage/
+│   │   ├── connection.py        # SQLite connection
+│   │   └── database.py          # Schema + saving entries
+│   ├── safety/
+│   │   ├── layer.py             # Get Help Now panel, quick exit, mode toggle
+│   │   └── resources.py         # Helpline directory
+│   └── ui/
+│       └── gradio_app.py        # Gradio interface
+├── scripts/                     # One-off DB utilities (run with python -m)
+│   ├── init_db.py
+│   ├── migrate_add_embedding.py
+│   ├── backfill_embeddings.py
+│   └── view_db.py
+├── tests/
+│   └── test_pipeline.py         # Backend pipeline check
+├── data/                        # mindmap.db lives here (gitignored)
 ├── requirements.txt
-│
-└── .env
-    └── API keys
+└── .env                         # API keys (gitignored)
 ```
 
 ---
@@ -259,10 +264,26 @@ GENAI_CLIENT_KEY=your_gemini_api_key
 
 # Running the Project
 
+## Create the database
+
+```bash
+python3 -m scripts.init_db
+```
+
+This creates `data/mindmap.db`. Set `MINDMAP_DB_PATH` to store it elsewhere.
+
+Other database utilities:
+
+```bash
+python3 -m scripts.view_db                  # print all entries
+python3 -m scripts.backfill_embeddings      # embed entries saved without one
+python3 -m scripts.migrate_add_embedding    # add the embedding column to an old DB
+```
+
 ## Test AI pipeline
 
 ```bash
-python3 test_pipeline.py
+python3 -m tests.test_pipeline
 ```
 
 Expected flow:
@@ -304,7 +325,7 @@ The project separates:
 
 ### UI Layer
 
-`app.py`
+`mindmap/ui/gradio_app.py`
 
 Responsible for:
 
@@ -313,7 +334,7 @@ Responsible for:
 
 ### Pipeline Layer
 
-`pipeline.py`
+`mindmap/pipeline.py`
 
 Responsible for:
 
@@ -321,13 +342,13 @@ Responsible for:
 
 ### AI Layer
 
-`hf_analyzer.py`
+`mindmap/analysis/emotion.py`
 
 Responsible for:
 
 * Emotion detection
 
-`gemini_service.py`
+`mindmap/analysis/reflection.py`
 
 Responsible for:
 
@@ -335,7 +356,7 @@ Responsible for:
 
 ### Data Layer
 
-`models.py`
+`mindmap/models.py`
 
 Responsible for:
 

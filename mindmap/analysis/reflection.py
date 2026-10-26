@@ -3,8 +3,8 @@ from google import genai
 from datetime import time
 from dotenv import load_dotenv
 
-from models import ReflectionAnalysis
-from models import EmotionAnalysis
+from mindmap.config import GEMINI_MODEL
+from mindmap.models import EmotionAnalysis, ReflectionAnalysis
 
 load_dotenv(verbose=True)
 
@@ -71,7 +71,7 @@ def analyze(journal_text, emotion_analysis: EmotionAnalysis, similar_entries=Non
     for attempt in range(3):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=GEMINI_MODEL,
                 contents=prompt
             )
             break

@@ -1,4 +1,17 @@
-../PythonProject/MindMap-Ai/.venv/
+# Environments
+.venv/
+myenv/
 .env
+
+# Python
 __pycache__/
-mindmap.dbmindmap.db
+*.pyc
+
+# Local data (journal entries are personal — never commit)
+*.db
+data/*
+!data/.gitkeep
+
+# IDE
+.idea/
+.vscode/

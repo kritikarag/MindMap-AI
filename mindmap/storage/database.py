@@ -1,12 +1,8 @@
 import json
-import sqlite3
 from datetime import datetime
-from memory import create_embedding
 
-DB_NAME = "mindmap.db"
-
-def get_connection():
-    return sqlite3.connect(DB_NAME)
+from mindmap.memory.embeddings import create_embedding
+from mindmap.storage.connection import get_connection
 
 def create_tables():
     conn = get_connection()

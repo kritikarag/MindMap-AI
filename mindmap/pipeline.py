@@ -1,7 +1,7 @@
-from hf_analyzer import predict
-from gemini_service import analyze
-from database import save_entry
-from memory import find_similar_entries
+from mindmap.analysis.emotion import predict
+from mindmap.analysis.reflection import analyze
+from mindmap.memory.embeddings import find_similar_entries
+from mindmap.storage.database import save_entry
 
 def analyze_entry(journal_text):
     """

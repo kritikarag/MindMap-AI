@@ -1,7 +1,9 @@
-from models import EmotionAnalysis
 from transformers import pipeline
 
-classifier = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base", top_k=None)
+from mindmap.config import EMOTION_MODEL
+from mindmap.models import EmotionAnalysis
+
+classifier = pipeline("text-classification", model=EMOTION_MODEL, top_k=None)
 
 def predict(text):
     results = classifier(text)

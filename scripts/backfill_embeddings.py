@@ -1,9 +1,9 @@
-import sqlite3
-from memory import create_embedding
+from mindmap.memory.embeddings import create_embedding
+from mindmap.storage.connection import get_connection
 import json
 
 
-conn = sqlite3.connect("mindmap.db")
+conn = get_connection()
 
 cursor = conn.cursor()
 
