@@ -1,462 +1,179 @@
-# MindMap-AI 🧠
+# MindMap AI 🧠
 
-An AI-powered journaling assistant that transforms personal journal entries into structured emotional insights and reflective feedback.
+MindMap AI is a journaling assistant that helps people notice recurring emotional and cognitive patterns in what they write. Each entry is analysed for emotion, compared against the user's past entries, and turned into a gentle, non-diagnostic reflection.
 
-MindMap-AI combines **emotion analysis**, **LLM-powered reflection**, and **structured AI outputs** to help users understand patterns in their thoughts and experiences.
+The longer-term goal is a domain-agnostic cognitive reflection engine. Its flagship application is helping people recognise patterns in emotionally harmful relationships and supporting their recovery, especially people who don't have access to professional support.
 
----
-
-# Overview
-
-Traditional journaling helps people record experiences, but it often lacks reflection and pattern discovery.
-
-MindMap-AI aims to bridge that gap:
-
-```
-Journal Entry
-      |
-      v
-Emotion Analysis
-      |
-      v
-AI Reflection
-      |
-      v
-Structured Insight
-```
-
-A user writes a journal entry, the system analyzes emotional signals, and an AI model generates a reflection while maintaining a safe, non-diagnostic approach.
+> MindMap AI is a self-reflection tool, not a medical or therapeutic service. It does not diagnose, and it is not a substitute for professional care.
 
 ---
 
-# Current Features
-
-## 1. Emotion Analysis
-
-Uses a Hugging Face transformer model to detect the dominant emotion in a journal entry.
-
-Example:
-
-Input:
+## How it works
 
 ```
-I hate working for long hours. I feel exhausted.
+Journal entry
+     │
+     ├──► Emotion analysis        Hugging Face (distilroberta emotion model)
+     │
+     ├──► Memory retrieval        Sentence embeddings + cosine similarity over past entries
+     │
+     ▼
+Reflection                         Gemini, given the entry, emotion signal and similar past entries
+     │
+     ▼
+Structured output (Pydantic)  ──►  saved to SQLite with its embedding  ──►  shown in the Gradio UI
 ```
 
-Output:
-
-```json
-{
-  "dominant_emotion": "sadness",
-  "confidence": 0.62
-}
-```
-
-The emotion model provides a structured emotional signal that is passed to the reflection layer.
-
----
-
-## 2. AI Reflection Generation
-
-Uses Gemini to generate a structured reflection based on:
-
-* Journal content
-* Detected emotion
-* Confidence score
-
-The model does not diagnose or make assumptions.
-
-Instead, it provides:
-
-* Observations
-* Possible patterns
-* Reflection
+1. **Emotion analysis.** A transformer classifier (`j-hartmann/emotion-english-distilroberta-base`) picks the dominant emotion and a confidence score.
+2. **Memory.** The entry is embedded with `all-MiniLM-L6-v2` and compared against every saved entry. The three closest matches go forward, and those above a 0.5 similarity score are offered to the model as possible context.
+3. **Reflection.** Gemini returns observations, possible patterns and a short reflection. The prompt forbids diagnosis and assumptions and asks for hedged language ("may", "might", "could"). The model may mention a resemblance to earlier entries, but it isn't allowed to quote them or force a connection.
+4. **Validation and storage.** The response is validated against a Pydantic schema, then saved together with the emotion result and the entry's embedding.
 
 Example output:
 
 ```json
 {
-  "observations": [
-    "The entry mentions prolonged working hours"
-  ],
-
-  "possible_patterns": [
-    "Possible work-related exhaustion"
-  ],
-
-  "reflection": "The entry may suggest frustration related to workload..."
+  "observations": ["The entry mentions prolonged working hours"],
+  "possible_patterns": ["This may resemble earlier entries about work-related exhaustion"],
+  "reflection": "The entry may suggest frustration with workload..."
 }
 ```
 
 ---
 
-# Architecture
+## Safety layer
 
-Current system design:
+Safety features came first, before any other feature work, and they are always on:
 
-```
-                 User Journal Entry
+- **Get Help Now panel.** A crisis and support resource directory that is visible on every screen. It never depends on the system detecting distress in what the user typed.
+- **Quick Exit.** A button that leaves the page instantly. It runs in the browser with no server round-trip.
+- **Journal-only mode.** A "Just let me write" option for entries the user doesn't want analysed. *(The toggle is in the UI, but it isn't connected to the pipeline yet. See Status.)*
 
-                         |
-                         v
-
-                    pipeline.py
-
-                         |
-          +--------------+--------------+
-          |                             |
-          v                             v
-
-  analysis/emotion.py       analysis/reflection.py
-
-   Hugging Face                 Gemini API
-
-          |                             |
-
-          +--------------+--------------+
-
-                         |
-
-                         v
-
-              ReflectionAnalysis
-
-                         |
-
-                         v
-
-                    Gradio UI
-```
+The resource list currently covers US services. Region-specific resources can be added in `mindmap/safety/resources.py`.
 
 ---
 
-# Project Structure
+## Project structure
 
 ```
 MindMap-AI/
 ├── app.py                       # Entry point: python app.py
-├── mindmap/                     # Application package
-│   ├── config.py                # DB path, model names (one place to change them)
-│   ├── models.py                # Pydantic schemas for structured outputs
-│   ├── pipeline.py              # Connects all components
+├── mindmap/
+│   ├── config.py                # DB path and model names
+│   ├── models.py                # Pydantic schemas (EmotionAnalysis, ReflectionAnalysis)
+│   ├── pipeline.py              # Orchestrates analysis → retrieval → reflection → storage
 │   ├── analysis/
-│   │   ├── emotion.py           # Emotion classification (Hugging Face)
-│   │   └── reflection.py        # Reflection generation (Gemini)
+│   │   ├── emotion.py           # Hugging Face emotion classifier
+│   │   └── reflection.py        # Gemini reflection generation
 │   ├── memory/
-│   │   └── embeddings.py        # Embeddings + similar-entry retrieval
+│   │   └── embeddings.py        # Embeddings and similar-entry retrieval
 │   ├── storage/
 │   │   ├── connection.py        # SQLite connection
-│   │   └── database.py          # Schema + saving entries
+│   │   └── database.py          # Schema and saving entries
 │   ├── safety/
-│   │   ├── layer.py             # Get Help Now panel, quick exit, mode toggle
-│   │   └── resources.py         # Helpline directory
+│   │   ├── layer.py             # Get Help Now, Quick Exit, journal-only toggle
+│   │   └── resources.py         # Support resource directory
 │   └── ui/
 │       └── gradio_app.py        # Gradio interface
-├── scripts/                     # One-off DB utilities (run with python -m)
-│   ├── init_db.py
-│   ├── migrate_add_embedding.py
-│   ├── backfill_embeddings.py
-│   └── view_db.py
+├── scripts/                     # Database utilities (run with python -m)
 ├── tests/
-│   └── test_pipeline.py         # Backend pipeline check
-├── data/                        # mindmap.db lives here (gitignored)
-├── requirements.txt
-└── .env                         # API keys (gitignored)
+│   └── test_pipeline.py         # End-to-end pipeline check
+└── data/                        # mindmap.db lives here (gitignored)
 ```
 
 ---
 
-# Technology Stack
+## Getting started
 
-## AI / ML
-
-* Hugging Face Transformers
-* Emotion classification model:
-
-  * `j-hartmann/emotion-english-distilroberta-base`
-
-## LLM
-
-* Gemini API
-
-Used for:
-
-* Reflection generation
-* Structured reasoning
-
-## Backend
-
-* Python
-* Pydantic
-
-Used for:
-
-* Data validation
-* Structured AI responses
-
-## UI
-
-* Gradio
-
-Used for:
-
-* Interactive journal interface
-
----
-
-# Installation
-
-## 1. Clone repository
+**1. Install**
 
 ```bash
-git clone <repository-url>
-
+git clone https://github.com/kritikarag/MindMap-AI.git
 cd MindMap-AI
-```
-
----
-
-## 2. Create virtual environment
-
-```bash
 python3 -m venv .venv
-```
-
-Activate:
-
-Mac/Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
----
-
-## 3. Install dependencies
-
-```bash
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
----
-
-## 4. Setup environment variables
-
-Create:
-
-```
-.env
-```
-
-Add:
+**2. Add your Gemini API key** to a `.env` file in the project root:
 
 ```
 GENAI_CLIENT_KEY=your_gemini_api_key
 ```
 
----
-
-# Running the Project
-
-## Create the database
+**3. Create the database**
 
 ```bash
 python3 -m scripts.init_db
 ```
 
-This creates `data/mindmap.db`. Set `MINDMAP_DB_PATH` to store it elsewhere.
+This creates `data/mindmap.db`. Set `MINDMAP_DB_PATH` to keep it somewhere else.
 
-Other database utilities:
+**4. Run**
+
+```bash
+python3 app.py                     # Gradio UI at http://127.0.0.1:7860
+python3 -m tests.test_pipeline     # run one sample entry through the pipeline
+```
+
+Database utilities:
 
 ```bash
 python3 -m scripts.view_db                  # print all entries
 python3 -m scripts.backfill_embeddings      # embed entries saved without one
-python3 -m scripts.migrate_add_embedding    # add the embedding column to an old DB
+python3 -m scripts.migrate_add_embedding    # add the embedding column to an older DB
 ```
 
-## Test AI pipeline
-
-```bash
-python3 -m tests.test_pipeline
-```
-
-Expected flow:
-
-```
-Journal Text
-      |
-      v
-Emotion Analysis
-      |
-      v
-Gemini Reflection
-      |
-      v
-Structured Output
-```
+The first run downloads the Hugging Face and sentence-transformer models, which can take a few minutes.
 
 ---
 
-## Run Gradio App
+## Tech stack
 
-```bash
-python3 app.py
-```
-
-Open:
-
-```
-http://127.0.0.1:7860
-```
-
----
-
-# Design Principles
-
-## Separation of Responsibilities
-
-The project separates:
-
-### UI Layer
-
-`mindmap/ui/gradio_app.py`
-
-Responsible for:
-
-* User interaction
-* Formatting output
-
-### Pipeline Layer
-
-`mindmap/pipeline.py`
-
-Responsible for:
-
-* Connecting components
-
-### AI Layer
-
-`mindmap/analysis/emotion.py`
-
-Responsible for:
-
-* Emotion detection
-
-`mindmap/analysis/reflection.py`
-
-Responsible for:
-
-* Reflection generation
-
-### Data Layer
-
-`mindmap/models.py`
-
-Responsible for:
-
-* Structured schemas
-
-This keeps the system modular and allows future additions without rewriting existing components.
+| Layer | Now | Planned |
+|---|---|---|
+| Emotion model | Hugging Face Transformers | Trained, calibrated classifiers |
+| Reflection | Gemini (`gemini-2.5-flash`) | |
+| Memory | sentence-transformers, brute-force cosine similarity | ChromaDB or FAISS |
+| Schemas | Pydantic | |
+| Storage | SQLite | |
+| Backend | Python | FastAPI |
+| Frontend | Gradio | React + Vite PWA |
 
 ---
 
-# Safety Approach
+## Status
 
-MindMap-AI is designed as a reflection assistant.
+**Done**
 
-It:
+- ✅ Emotion analysis and Gemini reflection with validated, structured output
+- ✅ Persistent storage of entries, analyses and embeddings
+- ✅ Similar-entry retrieval passed into the reflection prompt
+- ✅ Safety layer: Get Help Now panel and Quick Exit
 
-* Does not diagnose mental health conditions
-* Avoids making assumptions
-* Uses uncertainty-aware language:
+**In progress**
 
-  * "may"
-  * "might"
-  * "could"
-
-The goal is self-reflection, not medical analysis.
-
----
-
-# Future Roadmap
-
-## Multimodal Journaling
-
-Future support:
-
-### Voice Journaling
-
-Flow:
-
-```
-Voice Input
-      |
-      v
-Speech-to-text
-      |
-      v
-Journal Pipeline
-```
-
-### Diary Image Parsing
-
-Flow:
-
-```
-Handwritten Diary Image
-          |
-          v
-OCR / Vision Model
-          |
-          v
-Journal Pipeline
-```
+- Connecting the journal-only toggle to the pipeline, so "Just let me write" skips analysis
+- Replacing brute-force similarity with a vector index (ChromaDB or FAISS)
+- Supporting domain profiles in the extraction schema
 
 ---
 
-## Long-Term Memory
+## Roadmap
 
-Future versions will store journal history and use embeddings to discover patterns over time.
+- **Validation safety.** Guardrails so the system never quietly endorses the user's judgments about other people. They include noticing inconsistencies across entries and spotting rumination loops, and pointing to professional support instead of repeating the same story with more confidence.
+- **Pattern glossary.** Recognising relational tactics (DARVO, love bombing, minimisation, triangulation, blame-shifting), with relational dynamics such as attachment styles and the Drama Triangle written about non-judgmentally and kept separate.
+- **Long-term memory.** Retrieval across a user's full history, plus a separate entry type for childhood and origins.
+- **Idiographic modelling.** Building a model for each person rather than relying on population averages. This covers mining patterns from their entries, vector autoregressive (VAR) network models, and scoring how confident a suspected cause-and-effect link really is (Granger causality, convergent cross mapping). It also includes a tracker that checks a user's early intuitions against the evidence as it builds up over time.
+- **Trained classifiers** with calibrated confidence.
+- **Grounding** in schema therapy, attachment theory and trauma-informed frameworks.
+- **Research validation.**
+- **Web delivery.** A FastAPI backend and a React PWA, so the app works on a phone without going through an app store.
 
-Example:
-
-```
-Past Entries
-      |
-      v
-Vector Search
-      |
-      v
-Historical Context
-      |
-      v
-Personalized Reflection
-```
+Ideas beyond that include voice journaling, handwritten-diary OCR, narrative identity modelling and a privacy-preserving architecture.
 
 ---
 
-# Current Status
+## License
 
-Implemented:
-
-✅ Emotion analysis
-✅ Gemini reflection generation
-✅ Structured AI outputs
-✅ Pipeline architecture
-✅ Gradio interface
-
-Next milestone:
-
-Adding persistent memory and historical journal understanding.
-
----
-
-# License
-
-This project is currently for learning and experimentation.
+[MIT](LICENSE)
