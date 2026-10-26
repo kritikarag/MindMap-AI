@@ -1,11 +1,11 @@
 from sentence_transformers import SentenceTransformer
 import json
-import sqlite3
 import numpy as np
 
-model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
+from mindmap.config import EMBEDDING_MODEL
+from mindmap.storage.connection import get_connection
+
+model = SentenceTransformer(EMBEDDING_MODEL)
 
 def create_embedding(text):
     vectors = model.encode(text)
@@ -20,7 +20,7 @@ def similarity(a,b):
 def find_similar_entries(query):
     query_embedding = create_embedding(query)
 
-    conn = sqlite3.connect("mindmap.db")
+    conn = get_connection()
 
     cursor = conn.cursor()
 
@@ -37,9 +37,3 @@ def find_similar_entries(query):
     results.sort(reverse=True)
 
     return results[:3]
-
-print(
- find_similar_entries(
-   "I feel tired from work"
- )
-)

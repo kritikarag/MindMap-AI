@@ -1,4 +1,4 @@
-from pipeline import analyze_entry
+from mindmap.pipeline import analyze_entry
 
 journal = "I hate working long hours"
 

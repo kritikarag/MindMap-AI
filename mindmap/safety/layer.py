@@ -8,7 +8,7 @@ Reusable Gradio components for the Phase 0 safety layer:
 """
 
 import gradio as gr
-from resources import format_resources_markdown
+from mindmap.safety.resources import format_resources_markdown
 
 
 # ---------------------------------------------------------------------------
